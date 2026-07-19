@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ytshorts</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  html,body{margin:0;height:100%;background:#FFFFFF;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#111111;}
+  body{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;box-sizing:border-box;}
+  img{width:84px;height:84px;border-radius:20px;margin-bottom:18px;box-shadow:0 6px 24px rgba(0,0,0,0.25);}
+  h1{font-size:19px;margin:0 0 22px;font-weight:600;}
+  button, .cta{
+    font:inherit;font-weight:600;font-size:16px;border:none;border-radius:10px;
+    padding:14px 28px;cursor:pointer;background:#111111;color:#FFFFFF;
+    text-decoration:none;display:inline-block;min-width:200px;
+  }
+  .hint{margin-top:16px;font-size:13.5px;opacity:0.85;max-width:280px;line-height:1.5;}
+  .hint b{white-space:nowrap;}
+  #loading{font-size:14px;opacity:0.75;}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+<img src="icons/icon-192.png" alt="Ytshorts">
+<h1>Ytshorts</h1>
+
+<div id="loading">Loading…</div>
+
+<button id="installBtn" class="hidden">Install App</button>
+<div id="iosHint" class="hint hidden">Tap <b>Share</b> ↑ then <b>"Add to Home Screen"</b> to install</div>
+<a id="continueBtn" class="cta hidden" href="https://ytshorts.site">Continue to app</a>
+
+<script>
+  var TARGET = "https://ytshorts.site";
+  var deferredPrompt = null;
+  var loading = document.getElementById('loading');
+  var installBtn = document.getElementById('installBtn');
+  var iosHint = document.getElementById('iosHint');
+  var continueBtn = document.getElementById('continueBtn');
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  }
+
+  function isStandalone(){
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  }
+
+  // Already installed and running as an app -> skip straight to the site
+  if (isStandalone()) {
+    window.location.replace(TARGET);
+  } else {
+    loading.classList.add('hidden');
+    var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+    window.addEventListener('beforeinstallprompt', function(e){
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.classList.remove('hidden');
+      continueBtn.classList.add('hidden');
+    });
+
+    installBtn.addEventListener('click', function(){
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function(){
+        deferredPrompt = null;
+        installBtn.classList.add('hidden');
+        window.location.href = TARGET;
+      });
+    });
+
+    if (isIOS) {
+      iosHint.classList.remove('hidden');
+      continueBtn.textContent = 'Continue in browser';
+      continueBtn.classList.remove('hidden');
+    } else {
+      // Android/desktop without a fired prompt yet (e.g. already dismissed) — offer a way in
+      setTimeout(function(){
+        if (!deferredPrompt) {
+          continueBtn.classList.remove('hidden');
+        }
+      }, 1200);
+    }
+  }
+</script>
+</body>
+</html>
